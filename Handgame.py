@@ -9,9 +9,10 @@ from tensorflow.keras import layers
 from tensorflow.keras.models import Sequential
 import pathlib
 import gc
+import pandas as pd
 
-data_dir = pathlib.Path("C:\\Users\\Caden\\Desktop\\asl_train")
-image_count = len(list(data_dir.glob('*/*.jpg')))
+# actual,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151,152,153,154,155,156,157,158,159,160,161,162,163,164,165,166,167,168,169,170,171,172,173,174,175,176,177,178,179,180,181,182,183,184,185,186,187,188,189,190,191,192,193,194,195,196,197,198,199,200,201,202,203,204,205,206,207,208,209,210
+
 
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
@@ -24,91 +25,30 @@ if gpus:
   except RuntimeError as e:
     # Memory growth must be set before GPUs have been initialized
     print(e)
- 
-batch_size = 400
-img_height = 200
-img_width = 200
 
-train_ds = tf.keras.utils.image_dataset_from_directory(
-  data_dir,
-  validation_split=0.15,
-  subset="training",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
+data_dir = "C:\\Users\\Caden\\Desktop\\Hands\\landmarks.csv"
 
-val_ds = tf.keras.utils.image_dataset_from_directory(
-  data_dir,
-  validation_split=0.15,
-  subset="validation",
-  seed=123,
-  image_size=(img_height, img_width),
-  batch_size=batch_size)
+hands = pd.read_csv("C:\\Users\\Caden\\Desktop\\Hands\\landmarks.csv")
+hand_features = hands.copy()
+hand_labels = hand_features.pop('actual')
+hand_features = np.array(hand_features).astype('float32')
+print(hand_features)
+normalize = layers.Normalization()
+normalize.adapt(hand_features)
 
-class_names = train_ds.class_names
+hand_model = tf.keras.Sequential([
+      layers.Dense(210),
+      layers.Dense(24, activation='softmax')
+      ])
+hand_model.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False), optimizer = 'adam',  metrics=['accuracy'])
 
-AUTOTUNE = tf.data.AUTOTUNE
-train_ds = train_ds.cache().shuffle(1000).prefetch(buffer_size=AUTOTUNE)
-val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
+hand_model.fit(x=hand_features, y=hand_labels, epochs=20)
 
-data_augmentation = keras.Sequential(
-  [
-    layers.RandomFlip("horizontal",
-                      input_shape=(img_height,
-                                  img_width,
-                                  3)),
-    layers.RandomRotation(0.1),
-    layers.RandomZoom(0.1),
-  ]
-)
+# for letter in alphabet:
+#   for file in os.listdir("C:\\Users\\Caden\\Desktop\\Hands\\{}".format(letter)):
+#     hand = pd.read_csv("C:\\Users\\Caden\\Desktop\\Hands\\{}\\{}".format(letter,file))
+#     hand_features = hand.copy()
+#     hand_labels = [hand_features.pop('x'),hand_features.pop('y'),hand_features.pop('z')]
+#     print(letter, file)
 
-num_classes = len(class_names)
-model = Sequential([
-  data_augmentation,
-  layers.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
-  layers.Conv2D(16, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(32, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Conv2D(64, 3, padding='same', activation='relu'),
-  layers.MaxPooling2D(),
-  layers.Dropout(0.2),
-  layers.Flatten(),
-  layers.Dense(128, activation='relu'),
-  layers.Dense(num_classes)
-])
-
-model.compile(optimizer='adam',
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-              metrics=['accuracy'])
-
-epochs=15
-history = model.fit(
-  train_ds,
-  validation_data=val_ds,
-  epochs=epochs,
-)
-
-model.save('C:\\Users\\Caden\\Desktop\\model.h5')
-
-acc = history.history['accuracy']
-val_acc = history.history['val_accuracy']
-
-loss = history.history['loss']
-val_loss = history.history['val_loss']
-
-epochs_range = range(epochs)
-
-plt.figure(figsize=(8, 8))
-plt.subplot(1, 2, 1)
-plt.plot(epochs_range, acc, label='Training Accuracy')
-plt.plot(epochs_range, val_acc, label='Validation Accuracy')
-plt.legend(loc='lower right')
-plt.title('Training and Validation Accuracy')
-
-plt.subplot(1, 2, 2)
-plt.plot(epochs_range, loss, label='Training Loss')
-plt.plot(epochs_range, val_loss, label='Validation Loss')
-plt.legend(loc='upper right')
-plt.title('Training and Validation Loss')
-plt.show()
+hand_model.save('C:\\Users\\Caden\\Desktop\\Hands\\model.h6')
