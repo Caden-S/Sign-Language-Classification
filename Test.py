@@ -9,7 +9,7 @@ import pathlib
 import mediapipe as mp
 import math
 
-model = models.load_model('C:\\Users\\Caden\\Desktop\\Hands\\model.h6')
+model = models.load_model('~working dir~\model.h6')
 guesses = ['A','B','C','D','E','F','G','H','I','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y']
 
 mp_drawing = mp.solutions.drawing_utils
@@ -51,7 +51,7 @@ mp_hands = mp.solutions.hands
 
 cap = cv2.VideoCapture(0)
 while cap.isOpened():
-    path2 = "C:\\Users\\Caden\\Desktop\\Hands\\asl_test\\"
+    path2 = "~test files dir~"
     _, frame = cap.read()
     with mp_hands.Hands(
         static_image_mode=False,
